@@ -9,10 +9,13 @@
  * UPDATED : 2026-10-04_1934 UTC — link to the business account portal for members.
  * UPDATED : 2026-10-04_2204 UTC — My favorite pros: book again with them, or remove.
  * UPDATED : 2026-10-07_0530 UTC — Handled Points: balance, tier, credits, redeem, activity.
+ * UPDATED : 2026-10-11_1500 UTC — new customers (no bookings, no business account) get a welcome instead of an empty list:
+ *           how it works, popular services, first-booking perks (Points bonus, a friend's code) and "Book your first service".
+ *           It switches to the normal bookings view after their first booking.
  */
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { HANDLED_PLUS, REFERRAL, getService, money, moneyRange, serviceText, t as tr, type Job, type Locale } from "@handled/core";
+import { HANDLED_PLUS, LAUNCH_SET_RECOMMENDED, REFERRAL, getService, money, moneyRange, serviceText, t as tr, type Job, type Locale } from "@handled/core";
 import { getLocale } from "@/lib/locale";
 import { activeMembership, ensureReferralCode } from "@/lib/growth";
 import { siteUrl } from "@/lib/notify";
@@ -21,6 +24,7 @@ import { getViewer } from "@/lib/auth";
 import { myAccounts } from "@/lib/business";
 import { myFavorites } from "@/lib/favorites";
 import { LoyaltyCard } from "@/components/LoyaltyCard";
+import { getLoyaltySettings } from "@/lib/loyalty";
 import { RemoveFavorite } from "@/components/Favorites";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { Empty, NotConfigured, StatusBadge, fmtDate } from "@/components/ui";
@@ -42,6 +46,7 @@ export default async function Account() {
   const l = await getLocale();
   const t = (s: string) => tr(l, s);
   const name = (slug: string) => { const s = getService(slug); return s ? serviceText(l, slug, s).name : slug; };
+  const isNew = list.length === 0 && biz.length === 0;
   return (
     <div className="wrap py-12">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -73,8 +78,9 @@ export default async function Account() {
           </div>
         </div>
       )}
+      {isNew && <Welcome locale={l} name={name} />}
       <div className="mt-8 space-y-3">
-        {list.length === 0 && <Empty>{l === "es" ? `Aún no hay reservas. Todo lo que reserve con ${v.email} aparece aquí, con estado, facturas, mensajes y fotos.` : `No bookings yet. Anything you book with ${v.email} shows up here, with status, invoices, messages and photos.`}</Empty>}
+        {list.length === 0 && !isNew && <Empty>{l === "es" ? `Aún no hay reservas. Todo lo que reserve con ${v.email} aparece aquí, con estado, facturas, mensajes y fotos.` : `No bookings yet. Anything you book with ${v.email} shows up here, with status, invoices, messages and photos.`}</Empty>}
         {list.map((j) => {
           const s = getService(j.service_slug);
           return (
@@ -86,6 +92,42 @@ export default async function Account() {
         })}
       </div>
       <AccountExtras userId={v.userId} email={v.email} locale={l} />
+    </div>
+  );
+}
+
+/** First visit, nothing booked yet: what Handled is, how it works and one clear next step. */
+async function Welcome({ locale, name }: { locale: Locale; name: (slug: string) => string }) {
+  const es = locale === "es";
+  const points = await getLoyaltySettings().catch(() => null);
+  const popular = LAUNCH_SET_RECOMMENDED.filter((slug) => getService(slug)).slice(0, 6);
+  const steps = es
+    ? [["1", "Reserve en 2 minutos", "Elija el servicio, la fecha y vea el precio antes de confirmar."], ["2", "Un profesional verificado llega", "Con seguro y verificación de antecedentes. Le avisamos cuando va en camino."], ["3", "Pague cuando esté hecho", "Fotos del trabajo terminado, factura y mensajes, todo aquí."]]
+    : [["1", "Book in 2 minutes", "Pick a service and a date, and see the price before you confirm."], ["2", "A vetted pro shows up", "Insured and background-checked. We let you know when they're on the way."], ["3", "Pay when it's done", "Photos of the finished work, your invoice and messages, all right here."]];
+  return (
+    <div className="mt-8 space-y-4">
+      <div className="card border-brand bg-brand-tint">
+        <h2 className="text-2xl font-extrabold tracking-tight">{es ? "¡Bienvenido a Handled!" : "Welcome to Handled!"}</h2>
+        <p className="mt-1 text-sm text-ink-soft">{es ? "Su cuenta está lista. Esto es lo que pasa cuando reserva:" : "Your account is ready. Here's how it works:"}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {steps.map(([n, title, body]) => (
+            <div key={n} className="rounded-xl bg-white/70 p-3"><div className="text-xs font-bold text-brand">{n}</div><div className="font-semibold">{title}</div><div className="text-sm text-ink-soft">{body}</div></div>
+          ))}
+        </div>
+        <ul className="mt-4 space-y-1 text-sm">
+          {points?.enabled && <li>🏅 {es ? `+${points.firstJobBonus} Handled Points extra cuando termine su primer trabajo.` : `+${points.firstJobBonus} bonus Handled Points when your first job is done.`}</li>}
+          <li>🎁 {es ? `¿Tiene el código de un amigo? ${money(REFERRAL.friendOff)} de descuento en su primer trabajo: escríbalo al reservar.` : `Got a friend's code? ${money(REFERRAL.friendOff)} off your first job — enter it when you book.`}</li>
+        </ul>
+        <Link href="/book" className="btn-primary mt-5 inline-block">{es ? "Reservar mi primer servicio" : "Book your first service"}</Link>
+      </div>
+      <div>
+        <h2 className="mb-2 font-bold">{es ? "Lo más reservado" : "Popular services"}</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {popular.map((slug) => (
+            <Link key={slug} href={`/book?service=${slug}`} className="card flex items-center gap-2 transition hover:border-brand"><span className="text-2xl">{getService(slug)?.icon}</span><span className="text-sm font-semibold">{name(slug)}</span></Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

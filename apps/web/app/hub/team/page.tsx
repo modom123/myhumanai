@@ -4,6 +4,7 @@
  * CREATED : 2026-10-05_0434 UTC
  * PURPOSE : Hub → Team: who has Hub access (admins and dispatchers), add someone by email (they get a one-click sign-in
  *           link), or remove access. Admins only can change it. How everyone else is recognized is explained here too.
+ * UPDATED : 2026-10-11_1500 UTC — "What each role can do": the admin-only list (money, settings, marketing email, pro approvals).
  */
 import { getViewer } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
@@ -32,6 +33,27 @@ export default async function Team() {
         {!team.length && <p className="p-3 text-sm text-ink-soft">No team members yet.</p>}
       </div>
       {admin ? <div className="card"><h2 className="mb-2 font-bold">Add someone</h2><TeamAdd /></div> : <p className="text-sm text-ink-soft">Only an admin can add or remove team members.</p>}
+      <div className="card text-sm">
+        <h2 className="mb-1 font-bold">What each role can do</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div><div className="font-semibold">Dispatcher</div>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+              <li>Jobs board, live roster, dispatch, cancellations and coverage, checklists</li>
+              <li>Free redos and complimentary services for customers</li>
+              <li>Pros: edit areas and capacity, check documents, mark applicants "reviewing", record no-shows</li>
+              <li>Customers, bids, gov contracts, talent; log lead call outcomes</li>
+              <li>Email Center inbox: reply, one-off emails, opt-outs</li>
+            </ul></div>
+          <div><div className="font-semibold">Admin — everything, plus</div>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-ink-soft">
+              <li><b>Money</b>: Finance, payouts, Quick Charge, refunds, expenses, deductions, factoring, Accounting (Xero), partner commissions</li>
+              <li><b>Settings</b>: Go-live setup, market pricing, cities and services, promo codes, Website look, Team</li>
+              <li><b>Marketing email</b>: Email Center campaigns and settings, pro and business lead outreach</li>
+              <li><b>Pros</b>: invite or decline applicants, activate, warn, suspend, deactivate or reinstate</li>
+              <li>Approving AI-agent actions that move money, approve pros or contact customers</li>
+            </ul></div>
+        </div>
+      </div>
       <div className="card text-sm">
         <h2 className="mb-1 font-bold">How the system knows who's who</h2>
         <ul className="list-disc space-y-1 pl-5 text-ink-soft">

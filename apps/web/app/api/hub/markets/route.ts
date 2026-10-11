@@ -5,9 +5,10 @@
  * PURPOSE : Staff: add a market (city) or pause / resume one. POST { name, state, zip_prefixes[] } or { id, active }.
  *           A ZIP prefix can belong to one market only, so jobs are never counted twice.
  * UPDATED : 2026-10-04_1934 UTC — { id, launch_services: [...] | null }: which services a city has open (null = all).
+ * UPDATED : 2026-10-11_1500 UTC — admins only (which cities and services are open).
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { clearLaunchCache } from "@/lib/launch";
 import { LAUNCH_SET_RECOMMENDED, getService } from "@handled/core";
@@ -21,6 +22,7 @@ const Body = z.union([
 export async function POST(req: Request) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny();
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, "Name, 2-letter state and 3-digit ZIP prefixes");
   const db = adminClient();

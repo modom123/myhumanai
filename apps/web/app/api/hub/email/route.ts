@@ -13,10 +13,11 @@
  *             { action: "reply", uid, to, subject, text, in_reply_to?, references? } — answer an inbox email
  *             { action: "compose", to, subject, text }       — a one-off email from the company mailbox
  *             { action: "optout", email }                    — add someone to the do-not-email list
+ * UPDATED : 2026-10-11_1500 UTC — campaigns, settings and checks are admins only; dispatchers can reply, compose one-off emails and record opt-outs.
  */
 import { z } from "zod";
 import { EMAIL_AUDIENCES, EMAIL_LIMITS, lintCampaign, type EmailAudience } from "@handled/core";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { audienceRecipients, getEmailSettings, launchCampaign, sendTestEmail, type Campaign } from "@/lib/email-center";
 import { checkDomainDns, saveToSent, sendMail, verifyMailbox } from "@/lib/mailbox";
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, b.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "));
   const d = b.data;
+  if (!["reply", "compose", "optout"].includes(d.action) && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   const db = adminClient();
   const now = new Date().toISOString();
   const load = async (id: string) => (await db.from("email_campaigns").select("*").eq("id", id).maybeSingle()).data as Campaign | null;

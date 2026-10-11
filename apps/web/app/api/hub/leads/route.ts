@@ -4,10 +4,11 @@
  * CREATED : 2026-10-03_0210 UTC
  * PURPOSE : Hub → Pro leads actions (staff): save settings, import a CSV, run the engine now,
  *           or update a lead after a call (called / not interested / do not contact / replied / email it).
+ * UPDATED : 2026-10-11_1500 UTC — engine settings, CSV import and running outreach are admins only; dispatchers can log call outcomes.
  */
 import { z } from "zod";
 import { TRADE_SEARCH } from "@handled/core";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { importLeadsCsv, leadEngine, setLeadStatus } from "@/lib/leads";
 
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, b.error.issues[0]?.message ?? "Bad request");
   const d = b.data;
+  if (d.action !== "status" && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   if (d.action === "settings") {
     const { action: _a, ...s } = d;
     const { error } = await adminClient().from("lead_engine_settings").upsert({ id: 1, ...s, trades: s.trades.filter((t) => TRADE_SEARCH[t]), updated_at: new Date().toISOString(), updated_by: v!.email });

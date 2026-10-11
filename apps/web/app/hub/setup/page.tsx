@@ -5,14 +5,17 @@
  * UPDATED : 2026-10-02_1346 UTC — business & legal checklist (insurance, legal review, HIPAA, licensing).
  * PURPOSE : Go-live checklist — every integration, migration and account the business needs,
  *           green/amber/red, with the exact fix next to anything not ready.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { readiness } from "@/lib/readiness";
 import { Badge } from "@/components/ui";
 import { SyncCatalogButton } from "@/components/HubActions";
 import { LaunchChecklist } from "@/components/LaunchChecklist";
 import { adminClient } from "@/lib/supabase/server";
+import { adminOnly } from "@/components/AdminOnly";
 
 export default async function Setup() {
+  const gate = await adminOnly(); if (gate) return gate;
   const checks = await readiness();
   const ticks = process.env.SUPABASE_SERVICE_ROLE_KEY ? ((await adminClient().from("launch_checklist").select("*")).data ?? []) : [];
   const groups = [...new Set(checks.map((c) => c.group))];

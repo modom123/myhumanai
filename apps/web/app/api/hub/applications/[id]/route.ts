@@ -5,9 +5,10 @@
  * UPDATED : 2026-10-02_0006 UTC — uses lib/recruiting (one-click invite email, pipeline log).
  * PURPOSE : Staff: invite, decline or hold a subcontractor application. Inviting creates the pro
  *           record (status vetting until setup, documents and background check are done).
+ * UPDATED : 2026-10-11_1500 UTC — inviting (approve) or declining an applicant is admins only; dispatchers can mark one "reviewing".
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { inviteApplicant, logRecruiting, rejectApplicant } from "@/lib/recruiting";
 
@@ -19,6 +20,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { id } = await ctx.params;
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return deny(400, "decision required");
+  if (parsed.data.decision !== "reviewing" && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   const who = v!.fullName ?? v!.email;
   if (parsed.data.decision === "approve") {
     const r = await inviteApplicant(id, who);

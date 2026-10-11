@@ -5,6 +5,7 @@
  * PURPOSE : Handled Hub → Accounting (Xero). Xero is the books of record; this page connects it, maps each kind of
  *           money to a Xero account, previews a day's entries, pushes on demand, and shows every document sent
  *           (with links into Xero) and anything that failed. The daily cron does the pushing on its own.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { adminClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/auth";
@@ -12,6 +13,7 @@ import { getStripe } from "@/lib/stripe";
 import { ACCOUNT_KEYS, DEFAULT_ACCOUNTS, XERO_SCOPES, accountCode, getConnection, xeroConfigured, xeroLink, xeroRedirectUri } from "@/lib/xero";
 import { Badge, Empty, Stat } from "@/components/ui";
 import { AccountingControls, AccountMapping, DayPreview } from "@/components/AccountingUI";
+import { adminOnly } from "@/components/AdminOnly";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,7 @@ const MSG: Record<string, string> = {
 type Log = { id: string; kind: string; ref: string; day: string | null; status: keyof typeof TONE; xero_id: string | null; amount: number | null; error: string | null; attempts: number; updated_at: string; detail: Record<string, unknown> | null };
 
 export default async function Accounting({ searchParams }: { searchParams: Promise<{ xero?: string; org?: string; msg?: string; others?: string }> }) {
+  const gate = await adminOnly(); if (gate) return gate;
   const q = await searchParams;
   const v = await getViewer();
   const admin = v?.role === "admin";

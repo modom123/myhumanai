@@ -4,15 +4,18 @@
  * CREATED : 2026-10-01_2053 UTC
  * PURPOSE : Quick Charge — get paid for anything with a Stripe payment link (no products to
  *           set up in Stripe), and see every link and whether it's been paid.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { money } from "@handled/core";
 import { getViewer } from "@/lib/auth";
 import { Badge, Empty } from "@/components/ui";
 import { QuickChargeForm } from "@/components/HubActions";
+import { adminOnly } from "@/components/AdminOnly";
 
 type Rec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export default async function Charges({ searchParams }: { searchParams: Promise<{ job?: string }> }) {
+  const gate = await adminOnly(); if (gate) return gate;
   const v = await getViewer();
   if (!v) return null;
   const { job } = await searchParams;

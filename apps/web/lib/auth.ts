@@ -7,6 +7,8 @@
  * UPDATED : 2026-10-07_0600 UTC — owners (OWNER_EMAILS) are admins on every request, not only when they come through
  *           /auth/callback — a session from before OWNER_EMAILS was set (or a code typed in the app) no longer lands in the
  *           customer account / "Staff only".
+ * UPDATED : 2026-10-11_1500 UTC — isAdmin() + ADMINS_ONLY: dispatchers run day-to-day operations; money, settings, marketing
+ *           email and pro approvals/standing are admin-only (enforced in each /api/hub route, menu hidden in the Hub).
  */
 import "server-only";
 import type { Role } from "@handled/core";
@@ -54,6 +56,9 @@ export const ownerEmails = () => (process.env.OWNER_EMAILS ?? "").split(/[,\s]+/
 export const isOwnerEmail = (email?: string | null) => Boolean(email) && ownerEmails().includes(email!.trim().toLowerCase());
 
 export const isStaff = (v: Viewer | null) => v?.role === "admin" || v?.role === "dispatcher";
+export const isAdmin = (v: Viewer | null) => v?.role === "admin";
+/** The refusal a dispatcher sees for money, settings, marketing email and pro approval/standing actions. */
+export const ADMINS_ONLY = "Admins only — ask an admin (Hub → Team) to do this";
 
 export function deny(status = 403, message = "Not allowed") {
   return Response.json({ error: message }, { status });

@@ -4,6 +4,7 @@
  * CREATED : 2026-10-07_0320 UTC
  * PURPOSE : Handled Hub → Website: the default website look (one link per look for market-by-market campaigns).
  * UPDATED : 2026-10-07_0345 UTC — grand opening promotion removed (owner decision).
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { getViewer } from "@/lib/auth";
 import { siteUrl } from "@/lib/notify";
@@ -11,11 +12,13 @@ import { THEMES, defaultTheme } from "@/lib/theme";
 import { adminClient } from "@/lib/supabase/server";
 import { ThemePicker } from "@/components/SiteSettingsUI";
 import { CopyButton } from "@/components/PartnerUI";
+import { adminOnly } from "@/components/AdminOnly";
 
 export const dynamic = "force-dynamic";
 
 
 export default async function SiteSettings() {
+  const gate = await adminOnly(); if (gate) return gate;
   const v = await getViewer();
   const admin = v?.role === "admin";
   const { error } = await adminClient().from("site_settings").select("key").limit(1);

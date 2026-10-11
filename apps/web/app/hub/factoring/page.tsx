@@ -5,11 +5,13 @@
  * PURPOSE : Handled Hub → Factoring: the invoice factoring partners we're lining up so weekly pro payouts stay on time
  *           while business, city and government clients pay on net 30–60. Outreach status, each quote, and its cost on
  *           the same sample invoice, plus the questions to ask and the government assignment rules.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { FACTORING_SAMPLE, FACTORING_STATUS_LABEL, factoringCost, money, type FactoringStatus } from "@handled/core";
 import { adminClient } from "@/lib/supabase/server";
 import { Badge, Stat } from "@/components/ui";
 import { AddFactoringPartner, FactoringEditor, type FactoringRow } from "@/components/FactoringUI";
+import { adminOnly } from "@/components/AdminOnly";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ const TONE: Record<FactoringStatus, "slate" | "green" | "amber" | "red" | "brand
 type Row = FactoringRow & { website: string | null; fit: string | null; updated_at: string };
 
 export default async function FactoringHub() {
+  const gate = await adminOnly(); if (gate) return gate;
   const { data, error } = await adminClient().from("factoring_partners").select("*").order("sort").order("name");
   if (error) return (
     <div className="card max-w-2xl"><h1 className="text-xl font-bold">Factoring isn&apos;t switched on yet</h1>
