@@ -6,10 +6,11 @@
  *             { action: "update", id, status, advance_rate?, fee_pct?, …, notes? }  — outreach status and the quote
  *             { action: "add", name, website?, fit? }                               — another factoring company
  *           Rates are fractions (0.85 = 85%, 0.015 = 1.5%).
+ * UPDATED : 2026-10-11_1500 UTC — admins only.
  */
 import { z } from "zod";
 import { FACTORING_STATUS_LABEL } from "@handled/core";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 
 const txt = (n: number) => z.string().trim().max(n).nullable().optional();
@@ -31,6 +32,7 @@ const Body = z.discriminatedUnion("action", [
 export async function POST(req: Request) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny();
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, "Check the request");
   const d = b.data;

@@ -3,9 +3,10 @@
  * PROJECT : Handled (HandledServices) — AI-run home & business services
  * CREATED : 2026-10-02_1329 UTC
  * PURPOSE : Staff: create a promo code, or turn one on/off.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (discounts).
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 
 const Create = z.object({
@@ -18,6 +19,7 @@ const Create = z.object({
 export async function POST(req: Request) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny(403, "Staff only");
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const body = await req.json().catch(() => null);
   if (body?.toggle) {
     const { error } = await adminClient().from("promo_codes").update({ active: Boolean(body.active) }).eq("code", String(body.toggle).toUpperCase());

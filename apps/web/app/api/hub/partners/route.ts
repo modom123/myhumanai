@@ -7,10 +7,11 @@
  *             { action: "assign", partner_id, email }   — credit a customer to a partner by hand (12 months from today)
  *             { action: "unassign", email }             — remove a customer's partner (future jobs stop paying)
  *             { action: "void", commission_id, note }   — cancel an unpaid commission
+ * UPDATED : 2026-10-11_1500 UTC — voiding a commission is admins only.
  */
 import { z } from "zod";
 import { partnerExpiry } from "@handled/core";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 
 const Body = z.discriminatedUnion("action", [
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, "Check the request");
   const d = b.data;
+  if (d.action === "void" && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   const db = adminClient();
   let error: { message: string } | null = null;
   if (d.action === "status") ({ error } = await db.from("referral_partners").update({ status: d.status }).eq("id", d.id));

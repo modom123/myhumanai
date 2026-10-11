@@ -7,12 +7,14 @@
  * UPDATED : 2026-10-03_0120 UTC — proposed pro deductions: pro's response, uphold / waive with a reason.
  * PURPOSE : Unit economics — revenue, payouts, gross margin by service; payout queue;
  *           AI cost tracking from ai_runs.
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { CARD_FEE, TAKE_MAX, TAKE_MIN, getService, money } from "@handled/core";
 import { getViewer } from "@/lib/auth";
 import { Empty, Stat } from "@/components/ui";
 import { PayoutButton } from "@/components/HubActions";
 import { DeductionDecision } from "@/components/Deductions";
+import { adminOnly } from "@/components/AdminOnly";
 
 type Rec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -20,6 +22,7 @@ type Rec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-exp
 const AI_PRICE = { input: 4, output: 20 };
 
 export default async function Finance() {
+  const gate = await adminOnly(); if (gate) return gate;
   const v = await getViewer();
   if (!v) return null;
   const since = new Date(Date.now() - 30 * 86400000).toISOString();

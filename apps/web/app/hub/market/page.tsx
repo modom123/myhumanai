@@ -9,16 +9,19 @@
  * UPDATED : 2026-10-06_0740 UTC — "Pro pay, sliding scale" table: at each job size, what the pro is paid, what we keep and
  *           each as a % of the price (slidingScale, the same math that pays pros); Pro share column per service.
  * UPDATED : 2026-10-09_0310 UTC — sliding-scale note matches the +5-point price change (pro keeps ~75% → ~63% of the price).
+ * UPDATED : 2026-10-11_1500 UTC — admins only (components/AdminOnly); hidden from dispatchers in the Hub menu.
  */
 import { BOOKING_FEE, COMMISSION, MARKET_BOUNDS, SERVICES, TAKE_MAX, commissionRate, defaultAnswers, estimate, money, slidingScale, splitJob } from "@handled/core";
 import { adminClient } from "@/lib/supabase/server";
 import { Stat } from "@/components/ui";
 import { FactorOverride, RelearnButton } from "@/components/MarketAdmin";
+import { adminOnly } from "@/components/AdminOnly";
 
 export const dynamic = "force-dynamic";
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
 export default async function MarketPricing() {
+  const gate = await adminOnly(); if (gate) return gate;
   const db = adminClient();
   const since = new Date(Date.now() - 60 * 86400000).toISOString();
   const [{ data: sig }, { data: factors }, { data: offers }] = await Promise.all([

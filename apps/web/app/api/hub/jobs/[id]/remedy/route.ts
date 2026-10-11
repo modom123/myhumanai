@@ -3,9 +3,10 @@
  * PROJECT : Handled — AI-run home & business services
  * CREATED : 2026-10-01_1900 UTC
  * PURPOSE : Staff: make it right — refund, free redo, or complimentary service.
+ * UPDATED : 2026-10-11_1500 UTC — refunds are admins only; dispatchers can still book a free redo or complimentary service.
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { createComplimentary, createRedo, issueRefund } from "@/lib/remedies";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -20,6 +21,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!isStaff(v)) return deny();
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return deny(400, "Invalid remedy");
+  if (parsed.data.type === "refund" && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   const { id } = await ctx.params;
   const who = v!.fullName ?? v!.email;
   const b = parsed.data;

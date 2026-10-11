@@ -4,9 +4,10 @@
  * CREATED : 2026-10-01_2124 UTC
  * PURPOSE : Staff: approve or reject a materials receipt, open the receipt, or record that the
  *           customer paid the materials by hand.
+ * UPDATED : 2026-10-11_1500 UTC — approving / rejecting a receipt is admins only; anyone on staff can still open it.
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { signedDocUrl } from "@/lib/photos";
 import { approveExpense, reimburse, rejectExpense } from "@/lib/pro-benefits";
@@ -23,6 +24,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny();
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const b = z.object({ decision: z.enum(["approve", "reject", "paid_by_hand"]), reason: z.string().max(300).optional() }).safeParse(await req.json().catch(() => null));
   if (!b.success) return deny(400, "decision required");
   const { id } = await ctx.params;

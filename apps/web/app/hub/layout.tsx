@@ -29,11 +29,13 @@
  * UPDATED : 2026-10-07_0530 UTC — 🏅 Handled Points (customer and business loyalty).
  * UPDATED : 2026-10-07_0600 UTC — "Staff only" page shows the signed-in email, its role and exactly how to become admin.
  * UPDATED : 2026-10-07_1945 UTC — official logo (light version on the dark sidebar).
+ * UPDATED : 2026-10-11_1500 UTC — dispatchers don't see the admin-only pages (Money, Market pricing, Website look, Go-live setup);
+ *           those pages show "Admins only" (components/AdminOnly) and their APIs refuse dispatchers.
  */
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BRAND } from "@handled/core";
-import { getViewer, isStaff } from "@/lib/auth";
+import { getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { NotConfigured } from "@/components/ui";
 import { HubNav, type HubGroup } from "@/components/HubNav";
@@ -92,6 +94,11 @@ const NAV: HubGroup[] = [
   ] },
 ];
 
+/** Pages only admins can open — hidden from dispatchers' menu (each page and its API check again). */
+const ADMIN_PAGES = new Set(["/hub/finance", "/hub/accounting", "/hub/charges", "/hub/factoring", "/hub/market", "/hub/site", "/hub/setup"]);
+const navFor = (admin: boolean): HubGroup[] =>
+  admin ? NAV : NAV.map((g) => ({ ...g, links: g.links.filter(([href]) => !ADMIN_PAGES.has(href)) })).filter((g) => g.links.length);
+
 export const dynamic = "force-dynamic";
 
 export default async function HubLayout({ children }: { children: React.ReactNode }) {
@@ -113,7 +120,7 @@ export default async function HubLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen md:grid md:grid-cols-[220px_1fr]">
       <aside className="bg-brand-deep p-4 text-white md:min-h-screen">
         <Link href="/home" className="flex items-center gap-2 px-2">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/brand/handled-lockup-light.png" alt={BRAND.name} width={891} height={240} className="h-8 w-auto" /> <span className="text-xs font-normal text-white/50">Hub</span></Link>
-        <HubNav groups={NAV} />
+        <HubNav groups={navFor(isAdmin(v))} />
         <div className="mt-8 hidden px-2 text-xs text-white/40 md:block">{v.fullName ?? v.email}<br />{v.role}<form action="/auth/signout" method="post"><button className="mt-2 underline">Sign out</button></form></div>
       </aside>
       <main className="min-w-0 bg-paper p-4 md:p-8">{children}</main>

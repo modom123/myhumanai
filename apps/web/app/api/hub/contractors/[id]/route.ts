@@ -3,9 +3,10 @@
  * PROJECT : Handled — AI-run home & business services
  * CREATED : 2026-10-01_1723 UTC
  * PURPOSE : Staff: update a pro — activate after insurance/background check, suspend, edit capacity/ZIPs.
+ * UPDATED : 2026-10-11_1500 UTC — changing a pro's status or offboarding is admins only; dispatchers can still edit capacity, ZIPs, notes and compliance dates.
  */
 import { z } from "zod";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { onboardingChecklist } from "@handled/core";
 
@@ -24,6 +25,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!isStaff(v)) return deny();
   const parsed = Patch.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return deny(400, "Invalid update");
+  if ((parsed.data.status !== undefined || parsed.data.offboard_reason) && !isAdmin(v)) return deny(403, ADMINS_ONLY);
   const { id } = await ctx.params;
   const db = adminClient();
   const update: Record<string, unknown> = { ...parsed.data };

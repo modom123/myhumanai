@@ -5,10 +5,11 @@
  * UPDATED : 2026-10-02_1412 UTC — Spanish versions of person-facing texts, emails and push.
  * PURPOSE : Staff: Quick Charge — create a Stripe payment link for any amount (with or
  *           without a job), email it to the customer, and list recent links.
+ * UPDATED : 2026-10-11_1500 UTC — Quick Charge is admins only.
  */
 import { z } from "zod";
 import { BRAND, money, t, type Job } from "@handled/core";
-import { deny, getViewer, isStaff } from "@/lib/auth";
+import { ADMINS_ONLY, deny, getViewer, isAdmin, isStaff } from "@/lib/auth";
 import { adminClient } from "@/lib/supabase/server";
 import { createCheckout } from "@/lib/stripe";
 import { sendEmail } from "@/lib/notify";
@@ -28,6 +29,7 @@ const Body = z.object({
 export async function GET(req: Request) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny();
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const { data } = await adminClient().from("payments").select("id, kind, amount, status, description, customer_name, customer_email, link_url, created_by, created_at, paid_at, jobs(ref)").not("link_url", "is", null).order("created_at", { ascending: false }).limit(100);
   return Response.json({ charges: data ?? [] });
 }
@@ -35,6 +37,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const v = await getViewer(req);
   if (!isStaff(v)) return deny();
+  if (!isAdmin(v)) return deny(403, ADMINS_ONLY);
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return deny(400, parsed.error.issues[0]?.message ?? "Check the form");
   const b = parsed.data;
